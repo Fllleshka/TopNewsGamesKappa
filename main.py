@@ -6,8 +6,11 @@ import datetime
 import locale
 import requests
 import telebot
+
 from bs4 import BeautifulSoup as BS
 from telegraph import Telegraph
+from dates import *
+
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 # Функция формирования списка URLs
@@ -82,11 +85,8 @@ def planingpost(urls):
 
 # Функция публикации отложенного постинга
 def postinchannel(url):
-
-
     # Токен для связи с ботом
     bot = telebot.TeleBot(botkey)
-
     print(url)
     # Публикуем данную ссылку с заголовком статьи в канал
     #message = self.header_title + "\n\n" + url
@@ -322,14 +322,13 @@ while True:
         print("TimeToPost: ", timetopost)
         print("До удаления элемента =============> ", timewithposts)
         print("Размер TimeWithPosts: ", len(timewithposts))
+        postinchannel(timewithposts[0][1])
+        timewithposts.pop(0)
         if len(timewithposts) == 0:
             timetopost = datetime.time(9, 00).strftime("%H:%M")
         else:
-            postinchannel(timewithposts[0][1])
-            timewithposts.pop(0)
             timetopost = datetime.time(timewithposts[0][0], 00).strftime("%H:%M")
             print("Следующее вермя поста: ", timetopost)
-
         print("После удаления элемента =============> ", timewithposts)
     else:
         print(todaytime)
