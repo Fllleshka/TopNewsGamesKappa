@@ -322,16 +322,14 @@ while True:
         print("TimeToPost: ", timetopost)
         print("До удаления элемента =============> ", timewithposts)
         print("Размер TimeWithPosts: ", len(timewithposts))
-        if len(timewithposts) == 0:
+        if len(timewithposts) == 1:
+            postinchannel(timewithposts[0][1])
             timetopost = datetime.time(9, 00).strftime("%H:%M")
         else:
             postinchannel(timewithposts[0][1])
-            timewithposts.pop(0)
-            timetopost = datetime.time(timewithposts[0][0], 00).strftime("%H:%M")
+            timetopost = datetime.time(timewithposts[1][0], 00).strftime("%H:%M")
             print("Следующее вермя поста: ", timetopost)
-
-
-
+            timewithposts.pop(0)
         print("После удаления элемента =============> ", timewithposts)
     else:
         print(todaytime)
