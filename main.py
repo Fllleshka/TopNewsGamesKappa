@@ -188,7 +188,12 @@ class News:
 
         # Создаём временную папку TEMP
         urltemp = "TEMP"
-        os.mkdir(urltemp)
+        # Если есть такая папка, то удаляем и создаём заного (Обработка [WinError 183])
+        try:
+            os.mkdir(urltemp)
+        except OSError:
+            os.rmdir(urltemp)
+            os.mkdir(urltemp)
 
         # Скачиваем картинки из massive_photos
         i = 0
@@ -319,23 +324,18 @@ while True:
             timewithposts = planingpost(exporturls)
             print("План постинга выглядит так:\n", timewithposts)
     elif todaytime == timetopost:
-        if timewithposts in locals():
-            print("TimeToPost: ", timetopost)
-            print("До удаления элемента =============> ", timewithposts)
-            print("Размер TimeWithPosts: ", len(timewithposts))
-            if len(timewithposts) == 1:
-                postinchannel(timewithposts[0][1])
-                timetopost = datetime.time(9, 00).strftime("%H:%M")
-            else:
-                postinchannel(timewithposts[0][1])
-                timetopost = datetime.time(timewithposts[1][0], 00).strftime("%H:%M")
-                print("Следующее вермя поста: ", timetopost)
-                timewithposts.pop(0)
-            print("После удаления элемента =============> ", timewithposts)
-        else:
-            print("Новостей нет")
+        print("TimeToPost: ", timetopost)
+        print("До удаления элемента =============> ", timewithposts)
+        print("Размер TimeWithPosts: ", len(timewithposts))
+        if len(timewithposts) == 1:
+            postinchannel(timewithposts[0][1])
             timetopost = datetime.time(9, 00).strftime("%H:%M")
-
+        else:
+            postinchannel(timewithposts[0][1])
+            timetopost = datetime.time(timewithposts[1][0], 00).strftime("%H:%M")
+            print("Следующее вермя поста: ", timetopost)
+            timewithposts.pop(0)
+        print("После удаления элемента =============> ", timewithposts)
     else:
         print(todaytime)
     time.sleep(60)
