@@ -42,7 +42,7 @@ def createpost(header_title, autor, first_photo, massive_text, massive_photos):
     # Токен для связи с ботом
     bot = telebot.TeleBot(botkey)
 
-    # Отправляем сообзение в канал
+    # Отправляем сообщение в канал
     url = post(header_title, autor, first_photo, massive_text, massive_photos)
     message = header_title + "\n\n" + url
     bot.send_message(channel_id, message)

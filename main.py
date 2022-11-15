@@ -38,11 +38,18 @@ def importnews():
 
     # Url cтраницы с коротой будем парсить данные
     urlpage = "https://gamebomb.ru/news"
-    page = requests.get(urlpage, headers=headers)
+    try:
+        page = requests.get(urlpage, headers=headers, timeout = 5)
+    except requests.exceptions.HTTPError as error:
+        print(error)
 
     # Разбираем страницу с помощью BeautifulSoup
     html = BS(page.content, 'html.parser')
     postdates = html.select(".gbnews-listShort > td > a")
+
+    # Попытка решить проблему с вылетом скрипта
+    s = requests.session()
+    s.keep_alive = False
 
     # Формируем список ссылок на новости
     pathlist = []
@@ -72,7 +79,7 @@ def importnews():
 
 # Функция планирования отложенного постинга
 def planingpost(urls):
-    starttimeposting = datetime.time(9,00).strftime("%H")
+    starttimeposting = datetime.time(8,00).strftime("%H")
     endtimeposting = datetime.time(23,00).strftime("%H")
     delta = int(endtimeposting) - int(starttimeposting)
     nextstep = math.floor(delta / len(urls))
@@ -90,6 +97,7 @@ def postinchannel(url):
     print(url)
     # Публикуем данную ссылку с заголовком статьи в канал
     #message = self.header_title + "\n\n" + url
+
     bot.send_message(channel_id, url)
 
 class News:
@@ -289,53 +297,58 @@ class News:
 
 importtime = datetime.time(23, 55).strftime("%H:%M")
 planpostingdates = datetime.time(23, 58).strftime("%H:%M")
-timetopost = datetime.time(9, 00).strftime("%H:%M")
+timetopost = datetime.time(8, 00).strftime("%H:%M")
 nulltime = datetime.time(23, 0).strftime("%H:%M")
 # Список экспортированных url
 exporturls = []
+
 while True:
-    # Время сейчас
-    today = datetime.datetime.today()
-    todaytime = today.strftime("%H:%M")
-    # Обнуление переменных в конце дня
-    if todaytime == nulltime:
-        # Список импортированных url
-        importurls = []
-        # Список экспортированных url
-        exporturls = []
-    elif todaytime == importtime:
-        print("ImportTime: ", importtime)
-        # Заполняем данные импортированных новостей
-        importurls = importnews()
-        print("Импортированные новости: ", importurls)
-        # Цикл создания новостей
-        for element in importurls:
-            # Создаём экземпляр новости и работаем с ней
-            News(element)
-        print("Экспортированные новости: ", exporturls)
-    elif todaytime == planpostingdates:
-        if len(exporturls) == 0:
-            print("Массив экспортированных новостей пуст")
+    try:
+        # Время сейчас
+        today = datetime.datetime.today()
+        todaytime = today.strftime("%H:%M")
+        # Обнуление переменных в конце дня
+        if todaytime == nulltime:
+            # Список импортированных url
+            importurls = []
+            # Список экспортированных url
+            exporturls = []
+        elif todaytime == importtime:
+            print("ImportTime: ", importtime)
+            # Заполняем данные импортированных новостей
+            importurls = importnews()
+            print("Импортированные новости: ", importurls)
+            # Цикл создания новостей
+            for element in importurls:
+                # Создаём экземпляр новости и работаем с ней
+                News(element)
+            print("Экспортированные новости: ", exporturls)
+        elif todaytime == planpostingdates:
+            if len(exporturls) == 0:
+                print("Массив экспортированных новостей пуст")
+            else:
+                print("Массив экспортированных новостей не пуст")
+                # Отчистка списка запланированных постов с временем
+                timewithposts = []
+                print("PlanPostingDates: ", planpostingdates)
+                timewithposts = planingpost(exporturls)
+                print("План постинга выглядит так:\n", timewithposts)
+        elif todaytime == timetopost:
+            print("TimeToPost: ", timetopost)
+            print("До удаления элемента =============> ", timewithposts)
+            print("Размер TimeWithPosts: ", len(timewithposts))
+            if len(timewithposts) == 1:
+                postinchannel(timewithposts[0][1])
+                timetopost = datetime.time(8, 00).strftime("%H:%M")
+            else:
+                postinchannel(timewithposts[0][1])
+                timetopost = datetime.time(timewithposts[1][0], 00).strftime("%H:%M")
+                print("Следующее вермя поста: ", timetopost)
+                timewithposts.pop(0)
+            print("После удаления элемента =============> ", timewithposts)
         else:
-            print("Массив экспортированных новостей не пуст")
-            # Отчистка списка запланированных постов с временем
-            timewithposts = []
-            print("PlanPostingDates: ", planpostingdates)
-            timewithposts = planingpost(exporturls)
-            print("План постинга выглядит так:\n", timewithposts)
-    elif todaytime == timetopost:
-        print("TimeToPost: ", timetopost)
-        print("До удаления элемента =============> ", timewithposts)
-        print("Размер TimeWithPosts: ", len(timewithposts))
-        if len(timewithposts) == 1:
-            postinchannel(timewithposts[0][1])
-            timetopost = datetime.time(9, 00).strftime("%H:%M")
-        else:
-            postinchannel(timewithposts[0][1])
-            timetopost = datetime.time(timewithposts[1][0], 00).strftime("%H:%M")
-            print("Следующее вермя поста: ", timetopost)
-            timewithposts.pop(0)
-        print("После удаления элемента =============> ", timewithposts)
-    else:
-        print(todaytime)
-    time.sleep(60)
+            print(todaytime)
+        time.sleep(60)
+    except:
+        importtime = importtime + datetime.timedelta(minutes = 1)
+        time.sleep(5)

@@ -83,7 +83,6 @@ def importdates(urlpage):
         outputpage.close()
         i = i + 1
 
-
     # Формируем ссылки для картинок, которые загружаем
     # Путь до папки с комиксами
     pathtemp = './TEMP/'
