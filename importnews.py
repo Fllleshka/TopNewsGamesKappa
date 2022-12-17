@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup as BS
 
 import importdatesfrompages
 
-
 def importnews():
     locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
     # Получаем сегодняшнее число

@@ -27,15 +27,6 @@ def importnews():
     today = str(intday) + " " + months[int(month)-1] + " " + year
     print(today)
 
-    # Формируем headers, чтобы нам отвечал сервер корректно
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-        'Accept-Encoding': 'none',
-        'Accept-Language': 'en-US,en;q=0.8',
-        'Connection': 'keep-alive'}
-
     # Url cтраницы с коротой будем парсить данные
     urlpage = "https://gamebomb.ru/news"
     try:
@@ -79,26 +70,40 @@ def importnews():
 
 # Функция планирования отложенного постинга
 def planingpost(urls):
+    # Время начала постинга
     starttimeposting = datetime.time(8,00).strftime("%H")
+    # Время конца постинга
     endtimeposting = datetime.time(23,00).strftime("%H")
+    # Расчитываем время ожидания (для формирования времени следующего поста)
     delta = int(endtimeposting) - int(starttimeposting)
     nextstep = math.floor(delta / len(urls))
+    # Создаём массив названий статей
+    namesofpages = []
     mass = []
     timetopost = int(starttimeposting)
     for element in urls:
-        mass.append([timetopost, element])
+        namepage = insertnamepage(element)
+        mass.append([timetopost, element, namepage])
         timetopost += nextstep
     return mass
 
+# Функция открытия статьи и импорта названия
+def insertnamepage(url):
+    page = requests.get(url)
+    # Разбираем страницу с помощью BeautifulSoup
+    html = BS(page.content, 'html.parser')
+    postdates = html.select("title")
+    title = str(postdates)[8:-20]
+    return title
+
 # Функция публикации отложенного постинга
-def postinchannel(url):
+def postinchannel(url, title):
     # Токен для связи с ботом
     bot = telebot.TeleBot(botkey)
     print(url)
     # Публикуем данную ссылку с заголовком статьи в канал
-    #message = self.header_title + "\n\n" + url
-
-    bot.send_message(channel_id, url)
+    message = "[" + title + "](" + url + ")"
+    bot.send_message(channel_id, message, parse_mode = 'MarkdownV2')
 
 class News:
 
@@ -313,6 +318,7 @@ while True:
             importurls = []
             # Список экспортированных url
             exporturls = []
+        # Импортируем новости
         elif todaytime == importtime:
             print("ImportTime: ", importtime)
             # Заполняем данные импортированных новостей
@@ -330,7 +336,7 @@ while True:
                 print("Массив экспортированных новостей не пуст")
                 # Отчистка списка запланированных постов с временем
                 timewithposts = []
-                print("PlanPostingDates: ", planpostingdates)
+                print("Время планирования постов: ", planpostingdates)
                 timewithposts = planingpost(exporturls)
                 print("План постинга выглядит так:\n", timewithposts)
         elif todaytime == timetopost:
@@ -338,10 +344,10 @@ while True:
             print("До удаления элемента =============> ", timewithposts)
             print("Размер TimeWithPosts: ", len(timewithposts))
             if len(timewithposts) == 1:
-                postinchannel(timewithposts[0][1])
+                postinchannel(timewithposts[0][1], timewithposts[0][2])
                 timetopost = datetime.time(8, 00).strftime("%H:%M")
             else:
-                postinchannel(timewithposts[0][1])
+                postinchannel(timewithposts[0][1], timewithposts[0][2])
                 timetopost = datetime.time(timewithposts[1][0], 00).strftime("%H:%M")
                 print("Следующее вермя поста: ", timetopost)
                 timewithposts.pop(0)
@@ -350,5 +356,5 @@ while True:
             print(todaytime)
         time.sleep(60)
     except:
-        importtime = importtime + datetime.timedelta(minutes = 1)
-        time.sleep(5)
+        importtime = datetime.time(23, 57).strftime("%H:%M")
+        planpostingdates = datetime.time(23, 59).strftime("%H:%M")
