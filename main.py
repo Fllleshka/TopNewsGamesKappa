@@ -21,14 +21,12 @@ def importnews():
     day = today.strftime("%d")
     intday = int(day)
     month = today.strftime("%m")
-    months = ["января", "февраля", "марта", "апреля", "майя", "июня", "июля", "августа", "сентября", "октября",
+    months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября",
               "ноября", "декабря"]
     year = today.strftime("%Y")
     today = str(intday) + " " + months[int(month)-1] + " " + year
     print(today)
 
-    # Url cтраницы с коротой будем парсить данные
-    urlpage = "https://gamebomb.ru/news"
     try:
         page = requests.get(urlpage, headers=headers, timeout = 5)
     except requests.exceptions.HTTPError as error:
@@ -50,7 +48,7 @@ def importnews():
             pathlist.append(element["href"])
         i = i + 1
     dates = html.select(".sub")
-    print(dates)
+    #print(dates)
 
     result = []
     i = 0
@@ -60,31 +58,30 @@ def importnews():
             break
         # Обрезаем дату поста новости, для сравнения с текущей датой
         date_post = str(element.text)[:-8]
+        #print(f"\t\t{date_post}")
         # Если дата поста совпадает с сегодняшней датой, то
-        if date_post == today:
+        #if date_post == today:
+        if date_post == "19 мая 2023":
             # Формируем итоговый массив с ссылками
             result.append(str(pathlist[i]))
         i = i + 1
-    print(result)
+    #print(f"\t{result}")
     return result
 
 # Функция планирования отложенного постинга
-def planingpost(urls):
-    # Время начала постинга
-    starttimeposting = datetime.time(8,00).strftime("%H")
-    # Время конца постинга
-    endtimeposting = datetime.time(23,00).strftime("%H")
+def planingpost(urls, timestart, timeend):
     # Расчитываем время ожидания (для формирования времени следующего поста)
-    delta = int(endtimeposting) - int(starttimeposting)
+    delta = int(timeend) - int(timestart)
     nextstep = math.floor(delta / len(urls))
     # Создаём массив названий статей
     namesofpages = []
     mass = []
-    timetopost = int(starttimeposting)
+    timetopost = int(timestart)
     for element in urls:
         namepage = insertnamepage(element)
         mass.append([timetopost, element, namepage])
         timetopost += nextstep
+    print(f"\t{mass}")
     return mass
 
 # Функция открытия статьи и импорта названия
@@ -118,6 +115,7 @@ class News:
         self.massive_photos = []
         self.importdates(url)
 
+    # Функция печати данных
     def printimportdates(self):
         print("========================")
         print("URL:")
@@ -131,6 +129,7 @@ class News:
             print("\t" + element)
         print("========================")
 
+    # Функция импорта данных с сайта
     def importdates(self, urlpage):
 
         print("Запускаем импорт данных с: ", urlpage)
@@ -192,6 +191,7 @@ class News:
         # Выполняем выгрузку данных
         self.downloadfiles()
 
+    # Функция скачивания файлов
     def downloadfiles(self):
         # Скачиваем главную картинку
         page = requests.get(self.first_photo)
@@ -219,9 +219,10 @@ class News:
             outputpage.close()
             i = i + 1
 
-        # Выполняем загрузку фаилов в Telegram
+        # Выполняем загрузку файлов в Telegram
         self.uploadfiles(url)
 
+    # Функция загрузки фаилов на сервера telegram
     def uploadfiles(self,urlmainphoto):
 
         # Закачиваем на сервер главную картинку
@@ -264,6 +265,7 @@ class News:
         # Создаём пост
         self.createpost()
 
+    # Функция создания ссылки на страницу новости
     def createpost(self):
 
         #self.printimportdates()
@@ -272,6 +274,7 @@ class News:
         url = self.post()
         exporturls.append(url)
 
+    # Функция создания новости по url
     def post(self):
         # Создаём аккаунт
         telegraph = Telegraph()
@@ -303,67 +306,105 @@ class News:
 
 # Класс времён
 class times:
+
     # Время импорта новостей
-    importtime = datetime.time(23, 55).strftime("%H:%M")
+    importtime = datetime.datetime.today().strftime("%H:%M")
+    #importtime = datetime.time(23, 55).strftime("%H:%M")
+
     # Время подготовки плана постинга
-    planpostingdates = datetime.time(23, 58).strftime("%H:%M")
+    #planpostingdates = datetime.time(23, 58).strftime("%H:%M")
+    planpostingdates = (datetime.datetime.today() + datetime.timedelta(minutes=2)).strftime("%H:%M")
+    # Время начала постинга
+    starttimeposting = datetime.time(8,00).strftime("%H")
+    # Время конца постинга
+    endtimeposting = datetime.time(23, 00).strftime("%H")
+
     # Время первого поста
-    timetopost = datetime.time(8, 00).strftime("%H:%M")
+    #timetopost = datetime.time(8, 00).strftime("%H:%M")
+    timetopost = (datetime.datetime.today() + datetime.timedelta(minutes=3)).strftime("%H:%M")
+
     # Время обнуления переменных
     nulltime = datetime.time(23, 0).strftime("%H:%M")
 
-# Список экспортированных url
-exporturls = []
+# Класс общих данных
+class FullDates:
+    # Метод-конструктор с переменными экземпляра класса
+    def __init__(self):
+        # Список экспортированных url
+        self.exporturls = []
+        # Список запланированных постов с временем
+        self.timewithposts = []
+
+    # Функция печати данных
+    def printidates(self):
+        print("========================1\n")
+        for element in self.exporturls:
+            print("\t" + element)
+        for element in self.timewithposts:
+            print("\t" + element)
+        print("=========================2\n")
+
+# Функция определения действия
+def switcher(time, data):
+    match (todaytime):
+        # Обнуление переменных в конце дня
+        case times.nulltime:
+            # Список импортированных url
+            importurls = []
+            # Список экспортированных url
+            exporturls = []
+        # Импортируем новости
+        case times.importtime:
+            print("ImportTime: ", times.importtime)
+            # Заполняем данные импортированных новостей
+            importurls = importnews()
+            print("Импортированные новости: ", importurls)
+            # Цикл создания новостей
+            for element in importurls:
+                # Создаём экземпляр новости и работаем с ней
+                #News(element)
+                dddates.exporturls.append(News(element))
+            print("Экспортированные новости: ", dddates.printidates())
+        case times.planpostingdates:
+            if len(exporturls) == 0:
+                print("Массив экспортированных новостей пуст")
+            else:
+                print("Массив экспортированных новостей не пуст")
+                print("Время планирования постов: ", times.planpostingdates)
+                timewithposts = planingpost(exporturls, times.starttimeposting, times.endtimeposting)
+                print("План постинга выглядит так:\n", timewithposts)
+        case times.timetopost:
+            print("TimeToPost: ", times.timetopost)
+            print("До удаления элемента =============> ", timewithposts)
+            print("Размер TimeWithPosts: ", len(timewithposts))
+            #postinchannel(timewithposts[0][1], timewithposts[0][2])
+            #del timewithposts[0]
+            #if len(timewithposts) <= 1:
+            #    postinchannel(timewithposts[0][1], timewithposts[0][2])
+            #    timetopost = datetime.time(8, 00).strftime("%H:%M")
+            #    del timewithposts[0]
+            #    time.sleep(660)
+            #else:
+            #    postinchannel(timewithposts[0][1], timewithposts[0][2])
+            #    del timewithposts[0]
+            #    print("До после удаления элемента =============> ", timewithposts)
+            #    timetopost = datetime.time(timewithposts[0][0], 00).strftime("%H:%M")
+            #    print("Следующее время поста: ", timetopost)
+            #   time.sleep(660)
+            #print("После удаления элемента =============> ", timewithposts)
+
+        case _:
+            print(f"Время сейчас: {todaytime}")
 
 while True:
+    # Создаём экземпляр класса fulldates
+    dddates = FullDates()
     try:
         # Время сейчас
         today = datetime.datetime.today()
         todaytime = today.strftime("%H:%M")
-        match(todaytime):
-            # Обнуление переменных в конце дня
-            case times.nulltime:
-                # Список импортированных url
-                importurls = []
-                # Список экспортированных url
-                exporturls = []
-            # Импортируем новости
-            case times.importtime:
-                print("ImportTime: ", times.importtime)
-                # Заполняем данные импортированных новостей
-                importurls = importnews()
-                print("Импортированные новости: ", importurls)
-                # Цикл создания новостей
-                for element in importurls:
-                    # Создаём экземпляр новости и работаем с ней
-                    News(element)
-                print("Экспортированные новости: ", exporturls)
-            case times.planpostingdates:
-                if len(exporturls) == 0:
-                    print("Массив экспортированных новостей пуст")
-                else:
-                    print("Массив экспортированных новостей не пуст")
-                    # Отчистка списка запланированных постов с временем
-                    timewithposts = []
-                    print("Время планирования постов: ", times.planpostingdates)
-                    timewithposts = planingpost(exporturls)
-                    print("План постинга выглядит так:\n", timewithposts)
-            case times.timetopost:
-                print("TimeToPost: ", times.timetopost)
-                print("До удаления элемента =============> ", timewithposts)
-                print("Размер TimeWithPosts: ", len(timewithposts))
-                if len(timewithposts) <= 1:
-                    postinchannel(timewithposts[0][1], timewithposts[0][2])
-                    timetopost = datetime.time(8, 00).strftime("%H:%M")
-                    del timewithposts[0]
-                else:
-                    postinchannel(timewithposts[0][1], timewithposts[0][2])
-                    del timewithposts[0]
-                    timetopost = datetime.time(timewithposts[0][0], 00).strftime("%H:%M")
-                    print("Следующее время поста: ", timetopost)
-                print("После удаления элемента =============> ", timewithposts)
-            case _:
-                print(f"Время сейчас: {todaytime}")
+        # Запуск функции выбора действия
+        switcher(todaytime, dddates)
         time.sleep(60)
     except:
         times.importtime = datetime.time(23, 57).strftime("%H:%M")
